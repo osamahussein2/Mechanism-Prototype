@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public class Player : MonoBehaviour
 {
@@ -10,6 +11,9 @@ public class Player : MonoBehaviour
     [Header("Player Threshold")]
     [SerializeField] private float apexHeight = 10.0f;
 
+    [Header("Interactable Block")]
+    [SerializeField] private GameObject interactableBlock;
+
     private new Rigidbody2D rigidbody2D;
 
     private bool isFalling = false;
@@ -17,11 +21,18 @@ public class Player : MonoBehaviour
 
     private bool hitWall = false;
 
+    // Power up logic after hitting a ! block
+    private bool powerUpActive = false;
+    private float powerUpTime = 0.0f;
+
     // Start is called before the first frame update
     void Start()
     {
         // Initialize components
         rigidbody2D = GetComponent<Rigidbody2D>();
+
+        // Initialize player's scale in game before updating
+        rigidbody2D.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
     }
     
     void FixedUpdate()
@@ -71,7 +82,53 @@ public class Player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        PowerUpLogic();
+    }
+
+    // Let's handle some power up functionality here for organization
+    private void PowerUpLogic()
+    {
+        // If the player's power up is active
+        if (powerUpActive)
+        {
+            // Increment the power up time to determine when the power up will wear off
+            powerUpTime += Time.deltaTime;
+
+            // Increase the player's size
+            if (rigidbody2D.transform.localScale.x != 1.0f && rigidbody2D.transform.localScale.y != 1.0f)
+            {
+                rigidbody2D.transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            }
+
+            // Change the alpha of the interactable blocks to notify the player they can't interact with it until the power up wears off
+            if (interactableBlock.gameObject.GetComponent<Tilemap>().color != new Color(1.0f, 1.0f, 1.0f, 0.1f))
+            {
+                interactableBlock.gameObject.GetComponent<Tilemap>().color = new Color(1.0f, 1.0f, 1.0f, 0.1f);
+            }
+
+            // If the power up time exceeds some value, reset power up time to 0 and deactivate the power up
+            if (powerUpTime > 4.0f)
+            {
+                powerUpTime = 0.0f;
+                powerUpActive = false;
+            }
+        }
+
+        // Because if the power up is not active
+        else
+        {
+            // Reset player size to default
+            if (rigidbody2D.transform.localScale.x != 0.75f && rigidbody2D.transform.localScale.y != 0.75f)
+            {
+                rigidbody2D.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
+            }
+
+            // Reset tilemap's alpha color back to 1
+            if (interactableBlock.gameObject.GetComponent<Tilemap>().color != Color.white)
+            {
+                interactableBlock.gameObject.GetComponent<Tilemap>().color = Color.white;
+            }
+        }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -103,6 +160,15 @@ public class Player : MonoBehaviour
         if (collision.gameObject.name == "Wall")
         {
             hitWall = false;
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        // Make sure when the player hits the set interactable block collision and the power up isn't active yet, activate the power up
+        if (collision.gameObject.name == "Interactable Block Collision" && !powerUpActive)
+        {
+            powerUpActive = true;
         }
     }
 }
