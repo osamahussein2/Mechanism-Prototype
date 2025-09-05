@@ -133,8 +133,8 @@ public class Player : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        // Player hits ground, set falling and jumping to false
-        if (collision.gameObject.name == "Ground")
+        // Player hits ground or the higher ground, set falling and jumping to false
+        if (collision.gameObject.name == "Ground" || collision.gameObject.name == "Higher Ground")
         {
             if (isFalling != false) isFalling = false;
             if (isJumping != false) isJumping = false;
@@ -144,6 +144,13 @@ public class Player : MonoBehaviour
         if (collision.gameObject.name == "Wall")
         {
             hitWall = true;
+        }
+
+        // Make the player fall down after hitting the bottom of the block while jumping to interrupt the jump state
+        if (collision.gameObject.name == "Bottom Block Trigger" && !isFalling)
+        {
+            isJumping = false;
+            isFalling = true;
         }
     }
 
@@ -165,10 +172,17 @@ public class Player : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Make sure when the player hits the set interactable block collision and the power up isn't active yet, activate the power up
-        if (collision.gameObject.name == "Interactable Block Collision" && !powerUpActive)
+        // Make sure when the player hits the set interactable block trigger and the power up isn't active yet, activate the power up
+        if (collision.gameObject.name == "Interactable Block Trigger" && !powerUpActive)
         {
             powerUpActive = true;
+        }
+
+        // If the player hits the interactable block trigger, make the player fall down
+        if (collision.gameObject.name == "Interactable Block Trigger" && !isFalling)
+        {
+            isJumping = false;
+            isFalling = true;
         }
     }
 }
