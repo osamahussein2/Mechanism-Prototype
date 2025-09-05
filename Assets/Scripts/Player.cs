@@ -5,6 +5,14 @@ using UnityEngine.Tilemaps;
 
 public class Player : MonoBehaviour
 {
+    // Simplify player states into an enumeration
+    public enum PlayerState
+    {
+        Grounded,
+        Jumping,
+        Falling
+    }
+
     [Header("Player Movement")]
     [SerializeField] private float moveSpeed = 5.0f;
 
@@ -16,8 +24,7 @@ public class Player : MonoBehaviour
 
     private new Rigidbody2D rigidbody2D;
 
-    private bool isFalling = false;
-    private bool isJumping = false;
+    private PlayerState playerState = PlayerState.Falling;
 
     private bool hitWall = false;
 
@@ -41,39 +48,7 @@ public class Player : MonoBehaviour
         float horizontalMovement = Input.GetAxis("Horizontal");
         Vector2 movement = new Vector2(horizontalMovement, 0.0f);
 
-        // Make the player jump whenever space key is held and isJumping is false
-        if (Input.GetKey(KeyCode.Space) && !isJumping && !isFalling)
-        {
-            isJumping = true;
-        }
-
-        /* Otherwise space key isn't held and isJumping is true, set isJumping false and isFalling to true to
-        trigger falling logic */
-        else if (!Input.GetKey(KeyCode.Space) && isJumping)
-        {
-            isJumping = false;
-            isFalling = true;
-        }
-
-        /* If isFalling is false and the player reaches the apex height of the jump, set isFalling to true to make
-        the player fall down and not jump anymore */
-        if (!isFalling && rigidbody2D.velocity.y > apexHeight)
-        {
-            isJumping = false;
-            isFalling = true;
-        }
-
-        // If player is currently jumping and not falling, increase player's y velocity
-        if (isJumping && !isFalling)
-        {
-            rigidbody2D.velocity += new Vector2(0.0f, 1.0f);
-        }
-
-        // Else if player is currently falling and not jumping, decrease player's y velocity via gravity
-        else if (isFalling && !isJumping)
-        {
-            rigidbody2D.velocity += Physics2D.gravity * Time.deltaTime;
-        }
+        PerformJump();
 
         // Update player's position
         rigidbody2D.transform.position += (Vector3)movement * moveSpeed * Time.deltaTime;
@@ -83,6 +58,45 @@ public class Player : MonoBehaviour
     void Update()
     {
         PowerUpLogic();
+    }
+
+    private void PerformJump()
+    {
+        // DETECT INPUT FOR JUMPING
+
+        // Make the player jump whenever space key is held and player is grounded
+        if (Input.GetKey(KeyCode.Space) && playerState == PlayerState.Grounded)
+        {
+            playerState = PlayerState.Jumping;
+        }
+
+        /* Otherwise space key isn't held and player is still jumping, set state to falling to true to trigger
+        falling logic */
+        else if (!Input.GetKey(KeyCode.Space) && playerState == PlayerState.Jumping)
+        {
+            playerState = PlayerState.Falling;
+        }
+
+        // EXECUTE PLAYER STATES
+
+        /* If player's state is not falling and the player reaches the apex height of the jump, set state to falling
+        to make the player fall down */
+        if (playerState != PlayerState.Falling && rigidbody2D.velocity.y > apexHeight)
+        {
+            playerState = PlayerState.Falling;
+        }
+
+        // If player is currently jumping, increase player's y velocity
+        if (playerState == PlayerState.Jumping)
+        {
+            rigidbody2D.velocity += new Vector2(0.0f, 1.0f);
+        }
+
+        // Else if player is currently falling, decrease player's y velocity via gravity
+        else if (playerState == PlayerState.Falling)
+        {
+            rigidbody2D.velocity += Physics2D.gravity * Time.deltaTime;
+        }
     }
 
     // Let's handle some power up functionality here for organization
@@ -133,11 +147,10 @@ public class Player : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        // Player hits ground or the higher ground, set falling and jumping to false
+        // Player hits ground or the higher ground, set player state to grounded
         if (collision.gameObject.name == "Ground" || collision.gameObject.name == "Higher Ground")
         {
-            if (isFalling != false) isFalling = false;
-            if (isJumping != false) isJumping = false;
+            playerState = PlayerState.Grounded;
         }
 
         // Player hits wall, set hit wall to true
@@ -147,10 +160,9 @@ public class Player : MonoBehaviour
         }
 
         // Make the player fall down after hitting the bottom of the block while jumping to interrupt the jump state
-        if (collision.gameObject.name == "Bottom Block Trigger" && !isFalling)
+        if (collision.gameObject.name == "Bottom Block Trigger" && playerState != PlayerState.Falling)
         {
-            isJumping = false;
-            isFalling = true;
+            playerState = PlayerState.Falling;
         }
     }
 
@@ -159,8 +171,7 @@ public class Player : MonoBehaviour
         // Make player fall if it's not on ground anymore and the player has hit a wall
         if (collision.gameObject.name == "Ground" && hitWall)
         {
-            if (isFalling != true) isFalling = true;
-            if (isJumping != false) isJumping = false;
+            playerState = PlayerState.Falling;
         }
 
         // If player isn't hitting the wall anymore, set hit wall to false
@@ -179,10 +190,9 @@ public class Player : MonoBehaviour
         }
 
         // If the player hits the interactable block trigger, make the player fall down
-        if (collision.gameObject.name == "Interactable Block Trigger" && !isFalling)
+        if (collision.gameObject.name == "Interactable Block Trigger" && playerState != PlayerState.Falling)
         {
-            isJumping = false;
-            isFalling = true;
+            playerState = PlayerState.Falling;
         }
     }
 }
