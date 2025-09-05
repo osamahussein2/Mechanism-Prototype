@@ -26,8 +26,6 @@ public class Player : MonoBehaviour
 
     private PlayerState playerState = PlayerState.Falling;
 
-    private bool hitWall = false;
-
     // Power up logic after hitting a ! block
     private bool powerUpActive = false;
     private float powerUpTime = 0.0f;
@@ -153,31 +151,10 @@ public class Player : MonoBehaviour
             playerState = PlayerState.Grounded;
         }
 
-        // Player hits wall, set hit wall to true
-        if (collision.gameObject.name == "Wall")
-        {
-            hitWall = true;
-        }
-
         // Make the player fall down after hitting the bottom of the block while jumping to interrupt the jump state
         if (collision.gameObject.name == "Bottom Block Trigger" && playerState != PlayerState.Falling)
         {
             playerState = PlayerState.Falling;
-        }
-    }
-
-    private void OnCollisionExit2D(Collision2D collision)
-    {
-        // Make player fall if it's not on ground anymore and the player has hit a wall
-        if (collision.gameObject.name == "Ground" && hitWall)
-        {
-            playerState = PlayerState.Falling;
-        }
-
-        // If player isn't hitting the wall anymore, set hit wall to false
-        if (collision.gameObject.name == "Wall")
-        {
-            hitWall = false;
         }
     }
 
